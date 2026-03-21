@@ -2,14 +2,17 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import Calendar from '@/app/components/Calendar'
 
 export default function LeaderDashboard() {
   const [proposals, setProposals] = useState([])
   const [events, setEvents] = useState([])
+  const [announcements, setAnnouncements] = useState([])
   const [org, setOrg] = useState(null)
   const [activeTab, setActiveTab] = useState('budget')
   const [showBudgetForm, setShowBudgetForm] = useState(false)
   const [showEventForm, setShowEventForm] = useState(false)
+  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -25,6 +28,10 @@ export default function LeaderDashboard() {
   const [eventLocation, setEventLocation] = useState('')
   const [requiresPayment, setRequiresPayment] = useState(false)
   const [eventPrice, setEventPrice] = useState('')
+
+  // Announcement form state
+  const [announcementTitle, setAnnouncementTitle] = useState('')
+  const [announcementMessage, setAnnouncementMessage] = useState('')
 
   useEffect(() => {
     fetchData()
@@ -54,8 +61,15 @@ export default function LeaderDashboard() {
         .eq('org_id', orgData.id)
         .order('created_at', { ascending: false })
 
+      const { data: announcementsData } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('org_id', orgData.id)
+        .order('created_at', { ascending: false })
+
       setProposals(proposalsData || [])
       setEvents(eventsData || [])
+      setAnnouncements(announcementsData || [])
     }
     setLoading(false)
   }
@@ -95,6 +109,19 @@ export default function LeaderDashboard() {
     setRequiresPayment(false)
     setEventPrice('')
     setShowEventForm(false)
+    fetchData()
+  }
+
+  const submitAnnouncement = async (e) => {
+    e.preventDefault()
+    await supabase.from('announcements').insert({
+      org_id: org.id,
+      title: announcementTitle,
+      message: announcementMessage
+    })
+    setAnnouncementTitle('')
+    setAnnouncementMessage('')
+    setShowAnnouncementForm(false)
     fetchData()
   }
 
@@ -161,6 +188,18 @@ export default function LeaderDashboard() {
                 className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'events' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
               >
                 Event Proposals
+              </button>
+              <button
+                onClick={() => setActiveTab('announcements')}
+                className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'announcements' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
+              >
+                Announcements
+              </button>
+              <button
+                onClick={() => setActiveTab('calendar')}
+                className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'calendar' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
+              >
+                Calendar
               </button>
             </div>
 
@@ -313,6 +352,67 @@ export default function LeaderDashboard() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Announcements Tab */}
+            {activeTab === 'announcements' && (
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold">Announcements</h2>
+                  <button
+                    onClick={() => setShowAnnouncementForm(!showAnnouncementForm)}
+                    className="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800"
+                  >
+                    + New Announcement
+                  </button>
+                </div>
+
+                {showAnnouncementForm && (
+                  <form onSubmit={submitAnnouncement} className="flex flex-col gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
+                    <input
+                      placeholder="Announcement title"
+                      value={announcementTitle}
+                      onChange={(e) => setAnnouncementTitle(e.target.value)}
+                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                      required
+                    />
+                    <textarea
+                      placeholder="Write your message to members..."
+                      value={announcementMessage}
+                      onChange={(e) => setAnnouncementMessage(e.target.value)}
+                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                      rows={4}
+                      required
+                    />
+                    <button type="submit" className="bg-black text-white py-2 rounded-lg text-sm hover:bg-gray-800">
+                      Send Announcement
+                    </button>
+                  </form>
+                )}
+
+                {announcements.length === 0 ? (
+                  <p className="text-gray-400 text-sm">No announcements yet</p>
+                ) : (
+                  <div className="divide-y">
+                    {announcements.map(a => (
+                      <div key={a.id} className="py-4">
+                        <div className="flex justify-between items-start">
+                          <p className="font-medium">{a.title}</p>
+                          <p className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">{a.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Calendar Tab */}
+            {activeTab === 'calendar' && (
+              <div>
+                <Calendar />
               </div>
             )}
           </>
