@@ -8,6 +8,7 @@ export default function OrgDetail({ params }) {
   const [members, setMembers] = useState([])
   const [proposals, setProposals] = useState([])
   const [events, setEvents] = useState([])
+  const [announcements, setAnnouncements] = useState([])
   const [activeTab, setActiveTab] = useState('members')
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -42,10 +43,17 @@ export default function OrgDetail({ params }) {
       .eq('org_id', id)
       .order('created_at', { ascending: false })
 
+    const { data: announcementsData } = await supabase
+      .from('announcements')
+      .select('*')
+      .eq('org_id', id)
+      .order('created_at', { ascending: false })
+
     setOrg(orgData)
     setMembers(membersData || [])
     setProposals(proposalsData || [])
     setEvents(eventsData || [])
+    setAnnouncements(announcementsData || [])
     setLoading(false)
   }
 
@@ -108,7 +116,7 @@ export default function OrgDetail({ params }) {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 flex-wrap">
           <button
             onClick={() => setActiveTab('members')}
             className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'members' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
@@ -132,6 +140,12 @@ export default function OrgDetail({ params }) {
             className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'finances' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
           >
             Financial Audit
+          </button>
+          <button
+            onClick={() => setActiveTab('announcements')}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'announcements' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
+          >
+            Announcements
           </button>
         </div>
 
@@ -295,6 +309,28 @@ export default function OrgDetail({ params }) {
                         {p.status}
                       </span>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Announcements Tab */}
+        {activeTab === 'announcements' && (
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h2 className="text-lg font-bold mb-4">Announcements</h2>
+            {announcements.length === 0 ? (
+              <p className="text-gray-400 text-sm">No announcements yet</p>
+            ) : (
+              <div className="divide-y">
+                {announcements.map(a => (
+                  <div key={a.id} className="py-4">
+                    <div className="flex justify-between items-start">
+                      <p className="font-medium">{a.title}</p>
+                      <p className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">{a.message}</p>
                   </div>
                 ))}
               </div>
