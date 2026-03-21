@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Calendar from '@/app/components/Calendar'
+import LocationPicker from '@/app/components/LocationPicker'
 
 export default function LeaderDashboard() {
   const [proposals, setProposals] = useState([])
@@ -16,57 +17,34 @@ export default function LeaderDashboard() {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  // Budget form state
+  // Edit state
+  const [editingId, setEditingId] = useState(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editMessage, setEditMessage] = useState('')
+
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
-
-  // Event form state
   const [eventTitle, setEventTitle] = useState('')
   const [eventDescription, setEventDescription] = useState('')
   const [eventDate, setEventDate] = useState('')
   const [eventLocation, setEventLocation] = useState('')
   const [requiresPayment, setRequiresPayment] = useState(false)
   const [eventPrice, setEventPrice] = useState('')
-
-  // Announcement form state
   const [announcementTitle, setAnnouncementTitle] = useState('')
   const [announcementMessage, setAnnouncementMessage] = useState('')
 
-  useEffect(() => {
-    fetchData()
-  }, [])
+  // eslint-disable-next-line react-hooks/immutability
+  useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-
-    const { data: orgData } = await supabase
-      .from('orgs')
-      .select('*')
-      .eq('leader_id', user.id)
-      .single()
-
+    const { data: orgData } = await supabase.from('orgs').select('*').eq('leader_id', user.id).single()
     setOrg(orgData)
-
     if (orgData) {
-      const { data: proposalsData } = await supabase
-        .from('proposals')
-        .select('*')
-        .eq('org_id', orgData.id)
-        .order('created_at', { ascending: false })
-
-      const { data: eventsData } = await supabase
-        .from('events')
-        .select('*')
-        .eq('org_id', orgData.id)
-        .order('created_at', { ascending: false })
-
-      const { data: announcementsData } = await supabase
-        .from('announcements')
-        .select('*')
-        .eq('org_id', orgData.id)
-        .order('created_at', { ascending: false })
-
+      const { data: proposalsData } = await supabase.from('proposals').select('*').eq('org_id', orgData.id).order('created_at', { ascending: false })
+      const { data: eventsData } = await supabase.from('events').select('*').eq('org_id', orgData.id).order('created_at', { ascending: false })
+      const { data: announcementsData } = await supabase.from('announcements').select('*').eq('org_id', orgData.id).order('created_at', { ascending: false })
       setProposals(proposalsData || [])
       setEvents(eventsData || [])
       setAnnouncements(announcementsData || [])
@@ -76,52 +54,27 @@ export default function LeaderDashboard() {
 
   const submitBudgetProposal = async (e) => {
     e.preventDefault()
-    await supabase.from('proposals').insert({
-      org_id: org.id,
-      title,
-      amount: parseFloat(amount),
-      description,
-      status: 'pending'
-    })
-    setTitle('')
-    setAmount('')
-    setDescription('')
-    setShowBudgetForm(false)
-    fetchData()
+    await supabase.from('proposals').insert({ org_id: org.id, title, amount: parseFloat(amount), description, status: 'pending' })
+    setTitle(''); setAmount(''); setDescription(''); setShowBudgetForm(false); fetchData()
   }
 
   const submitEventProposal = async (e) => {
     e.preventDefault()
-    await supabase.from('events').insert({
-      org_id: org.id,
-      title: eventTitle,
-      description: eventDescription,
-      date: eventDate,
-      location: eventLocation,
-      requires_payment: requiresPayment,
-      price: requiresPayment ? parseFloat(eventPrice) : 0,
-      status: 'pending'
-    })
-    setEventTitle('')
-    setEventDescription('')
-    setEventDate('')
-    setEventLocation('')
-    setRequiresPayment(false)
-    setEventPrice('')
-    setShowEventForm(false)
-    fetchData()
+    await supabase.from('events').insert({ org_id: org.id, title: eventTitle, description: eventDescription, date: eventDate, location: eventLocation, requires_payment: requiresPayment, price: requiresPayment ? parseFloat(eventPrice) : 0, status: 'pending' })
+    setEventTitle(''); setEventDescription(''); setEventDate(''); setEventLocation(''); setRequiresPayment(false); setEventPrice(''); setShowEventForm(false); fetchData()
   }
 
   const submitAnnouncement = async (e) => {
     e.preventDefault()
-    await supabase.from('announcements').insert({
-      org_id: org.id,
-      title: announcementTitle,
-      message: announcementMessage
-    })
-    setAnnouncementTitle('')
-    setAnnouncementMessage('')
-    setShowAnnouncementForm(false)
+    await supabase.from('announcements').insert({ org_id: org.id, title: announcementTitle, message: announcementMessage })
+    setAnnouncementTitle(''); setAnnouncementMessage(''); setShowAnnouncementForm(false); fetchData()
+  }
+
+  const saveEdit = async (id) => {
+    await supabase.from('announcements').update({ title: editTitle, message: editMessage }).eq('id', id)
+    setEditingId(null)
+    setEditTitle('')
+    setEditMessage('')
     fetchData()
   }
 
@@ -131,293 +84,470 @@ export default function LeaderDashboard() {
   }
 
   const statusBadge = (status) => {
-    if (status === 'approved') return 'bg-green-100 text-green-700'
-    if (status === 'denied') return 'bg-red-100 text-red-700'
-    return 'bg-yellow-100 text-yellow-700'
+    if (status === 'approved') return 'badge-green'
+    if (status === 'denied') return 'badge-red'
+    return 'badge-yellow'
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f4ff', fontFamily: 'Inter, sans-serif', fontSize: '16px', color: '#6b7280' }}>
+      Loading...
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b px-8 py-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold">OrgBridge</h1>
-          <p className="text-sm text-gray-500">{org?.name || 'Org Leader Portal'}</p>
-        </div>
-        <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-black">Sign out</button>
-      </div>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #f0f4ff; font-family: 'Inter', sans-serif; }
 
-      <div className="max-w-4xl mx-auto px-8 py-8">
+        .navbar {
+          background: #fff;
+          border-bottom: 2px solid #e5e7eb;
+          padding: 0 40px;
+          height: 64px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+        }
+
+        .nav-logo { height: 140px; width: auto; object-fit: contain; }
+        .nav-right { display: flex; align-items: center; gap: 16px; }
+
+        .nav-badge {
+          background: #ffffff;
+          color: #000000;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 4px 12px;
+          border-radius: 99px;
+          border: 1px solid #8b8e8f;
+        }
+
+        .signout-btn {
+          background: none;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 8px 16px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #78797a;
+          cursor: pointer;
+          font-family: 'Inter', sans-serif;
+          transition: all 0.15s;
+        }
+        .signout-btn:hover { border-color: #06b6d4; color: #0891b2; }
+
+        .main { max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
+        .page-sub { font-size: 15px; color: #6b7280; margin-bottom: 32px; }
+
+        .stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+          margin-bottom: 32px;
+        }
+
+        .stat-card {
+          background: #fff;
+          border-radius: 16px;
+          padding: 20px 22px;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+          border: 2px solid #e5e7eb;
+        }
+
+        .stat-label { font-size: 15px; color: #000000; font-weight: 700; margin-bottom: 8px; }
+        .stat-value { font-size: 20px; font-weight: 600; color: #1a1a2e; letter-spacing: -1px; line-height: 1; }
+        .stat-value.green { color: #00fe00; }
+        .stat-value.yellow { color: #fffb00; }
+        .stat-value.red { color: #000000; }
+        .stat-value.cyan { color: #000000; }
+
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+
+        .tab-btn {
+          padding: 10px 20px;
+          border-radius: 10px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          border: 2px solid #e5e7eb;
+          background: #ffffff;
+          color: #6b7280;
+          font-family: 'Inter', sans-serif;
+          transition: all 0.15s;
+        }
+
+        .tab-btn:hover { border-color: #000000; color: #000000; }
+        .tab-btn.active { background: #ffffff; color: #111113; border-color: #111113; }
+
+        .content-card {
+          background: #fff;
+          border-radius: 18px;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+          border: 2px solid #e5e7eb;
+          overflow: hidden;
+        }
+
+        .content-head {
+          padding: 20px 24px;
+          border-bottom: 2px solid #f3f4f6;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .content-title { font-size: 17px; font-weight: 700; color: #1a1a2e; }
+
+        .list-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 24px;
+          border-bottom: 1px solid #f3f4f6;
+          transition: background 0.1s;
+          gap: 16px;
+        }
+        .list-row:last-child { border-bottom: none; }
+        .list-row:hover { background: #f9fafb; }
+
+        .row-title { font-size: 15px; font-weight: 600; color: #1a1a2e; margin-bottom: 3px; }
+        .row-sub { font-size: 13px; color: #9ca3af; }
+        .row-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+        .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px; white-space: nowrap; }
+        .badge-green { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .badge-red { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .badge-yellow { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
+
+        .amount-badge-green {
+        background: #f0fdf4;
+        color: #16a34a;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 99px;
+        }
+
+        .amount-badge-yellow {
+        background: #fef3c7;
+        color: #d97706;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 99px;
+        }
+        
+
+        .amount-badge-red {
+        background: #fef2f2;
+        color: #dc2626;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 99px;
+        }
+        
+        .new-btn {
+          background: #000000; color: #ffffff;
+          border: none; border-radius: 8px;
+          padding: 8px 16px; font-size: 13px; font-weight: 600;
+          cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s;
+        }
+        .new-btn:hover { background: #333; }
+
+        .form-box {
+          background: #f9fafb; border: 1px solid #e5e7eb;
+          border-radius: 12px; padding: 20px; margin-bottom: 20px;
+          display: flex; flex-direction: column; gap: 10px;
+        }
+
+        .form-input {
+          width: 100%; background: #fff;
+          border: 2px solid #e5e7eb; border-radius: 8px;
+          padding: 10px 14px; font-size: 14px; color: #1a1a2e;
+          font-family: 'Inter', sans-serif; outline: none; transition: border 0.15s;
+        }
+        .form-input:focus { border-color: #06b6d4; }
+        .form-input::placeholder { color: #c0c4cc; }
+
+        .form-submit {
+          background: #000000; color: #fff; border: none;
+          border-radius: 8px; padding: 11px; font-size: 14px; font-weight: 600;
+          cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.15s;
+        }
+        .form-submit:hover { background: #333; }
+
+        .cancel-btn {
+          background: #f3f4f6; color: #374151; border: none;
+          border-radius: 8px; padding: 11px; font-size: 14px; font-weight: 600;
+          cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.15s;
+        }
+        .cancel-btn:hover { background: #e5e7eb; }
+
+        .edit-form {
+          width: 100%;
+          background: #f0f4ff;
+          border: 2px solid #06b6d4;
+          border-radius: 12px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .edit-label {
+          font-size: 11px;
+          font-weight: 700;
+          color: #0891b2;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 2px;
+        }
+
+        .checkbox-label {
+          display: flex; align-items: center; gap: 8px;
+          font-size: 13px; color: #6b7280; cursor: pointer;
+        }
+
+        .empty { padding: 48px 24px; text-align: center; color: #9ca3af; font-size: 15px; }
+        .empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+        @media (max-width: 640px) {
+          .stats { grid-template-columns: repeat(2, 1fr); }
+          .navbar { padding: 0 20px; }
+          .main { padding: 24px 16px; }
+        }
+      `}</style>
+
+      <nav className="navbar">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="Two Delta" className="nav-logo" />
+        <div className="nav-right">
+          <span className="nav-badge">👥 {org?.name || 'Org Leader Portal'}</span>
+          <button onClick={handleLogout} className="signout-btn">Sign out</button>
+        </div>
+      </nav>
+
+      <div className="main">
+        <div className="page-sub">Manage your organization, budgets, and events</div>
+
         {!org ? (
-          <div className="bg-white rounded-2xl p-8 text-center shadow-sm">
-            <p className="text-gray-500">You don't have an org yet. Ask an admin to create one for you.</p>
+          <div className="content-card">
+            <div className="empty"><div className="empty-icon">🏛</div>You don't have an org yet. Ask an admin to create one for you.</div>
           </div>
         ) : (
           <>
-            {/* Stats */}
-            <div className="grid grid-cols-4 gap-4 mb-8">
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <p className="text-gray-500 text-sm">Total Proposals</p>
-                <p className="text-3xl font-bold mt-1">{proposals.length}</p>
+            <div className="stats">
+              <div className="stat-card">
+                <div className="stat-label">Total Proposals</div>
+                <div className="stat-value">{proposals.length}</div>
               </div>
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <p className="text-gray-500 text-sm">Approved</p>
-                <p className="text-3xl font-bold mt-1 text-green-500">{proposals.filter(p => p.status === 'approved').length}</p>
+              <div className="stat-card">
+                <div className="stat-label">Approved</div>
+                <div className="stat-value green">{proposals.filter(p => p.status === 'approved').length}</div>
               </div>
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <p className="text-gray-500 text-sm">Pending</p>
-                <p className="text-3xl font-bold mt-1 text-yellow-500">{proposals.filter(p => p.status === 'pending').length}</p>
+              <div className="stat-card">
+                <div className="stat-label">Pending</div>
+                <div className="stat-value yellow">{proposals.filter(p => p.status === 'pending').length}</div>
               </div>
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <p className="text-gray-500 text-sm">Events</p>
-                <p className="text-3xl font-bold mt-1">{events.length}</p>
+              <div className="stat-card">
+                <div className="stat-label">Events</div>
+                <div className="stat-value cyan">{events.length}</div>
               </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2 mb-6">
-              <button
-                onClick={() => setActiveTab('budget')}
-                className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'budget' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
-              >
-                Budget Proposals
-              </button>
-              <button
-                onClick={() => setActiveTab('events')}
-                className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'events' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
-              >
-                Event Proposals
-              </button>
-              <button
-                onClick={() => setActiveTab('announcements')}
-                className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'announcements' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
-              >
-                Announcements
-              </button>
-              <button
-                onClick={() => setActiveTab('calendar')}
-                className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'calendar' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
-              >
-                Calendar
-              </button>
+            <div className="tabs">
+              {[
+                { id: 'budget', label: '💰 Budget Proposals' },
+                { id: 'events', label: '📅 Event Proposals' },
+                { id: 'announcements', label: '📣 Announcements' },
+                { id: 'calendar', label: '📆 Calendar' },
+              ].map(t => (
+                <button key={t.id} className={`tab-btn ${activeTab === t.id ? 'active' : ''}`} onClick={() => setActiveTab(t.id)}>
+                  {t.label}
+                </button>
+              ))}
             </div>
 
-            {/* Budget Tab */}
+            {/* BUDGET TAB */}
             {activeTab === 'budget' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-bold">Budget Proposals</h2>
-                  <button
-                    onClick={() => setShowBudgetForm(!showBudgetForm)}
-                    className="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800"
-                  >
-                    + New Proposal
-                  </button>
+              <div className="content-card">
+                <div className="content-head">
+                  <div className="content-title">Budget Proposals</div>
+                  <button className="new-btn" onClick={() => setShowBudgetForm(!showBudgetForm)}>+ New Proposal</button>
                 </div>
-
                 {showBudgetForm && (
-                  <form onSubmit={submitBudgetProposal} className="flex flex-col gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
-                    <input
-                      placeholder="Proposal title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                      required
-                    />
-                    <input
-                      placeholder="Amount ($)"
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                      required
-                    />
-                    <textarea
-                      placeholder="Description — what is this budget for?"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                      rows={3}
-                      required
-                    />
-                    <button type="submit" className="bg-black text-white py-2 rounded-lg text-sm hover:bg-gray-800">
-                      Submit Proposal
-                    </button>
-                  </form>
+                  <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
+                    <form onSubmit={submitBudgetProposal} className="form-box" style={{ margin: 0 }}>
+                      <input className="form-input" placeholder="Proposal title" value={title} onChange={e => setTitle(e.target.value)} required />
+                      <input className="form-input" type="number" placeholder="Amount ($)" value={amount} onChange={e => setAmount(e.target.value)} required />
+                      <textarea className="form-input" placeholder="Description — what is this budget for?" value={description} onChange={e => setDescription(e.target.value)} rows={3} required />
+                      <button type="submit" className="form-submit">Submit Proposal</button>
+                    </form>
+                  </div>
                 )}
-
                 {proposals.length === 0 ? (
-                  <p className="text-gray-400 text-sm">No proposals yet</p>
-                ) : (
-                  <div className="divide-y">
-                    {proposals.map(proposal => (
-                      <div key={proposal.id} className="py-4 flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{proposal.title}</p>
-                          <p className="text-sm text-gray-500">${proposal.amount} · {proposal.description}</p>
-                        </div>
-                        <span className={`text-sm px-3 py-1 rounded-full font-medium ${statusBadge(proposal.status)}`}>
-                          {proposal.status}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="empty"><div className="empty-icon">💰</div>No proposals yet</div>
+                ) : proposals.map(proposal => (
+                  <div key={proposal.id} className="list-row">
+                    <div style={{ flex: 1 }}>
+                      <div className="row-title">{proposal.title}</div>
+                      <div className="row-sub">${proposal.amount} · {proposal.description}</div>
+                    </div>
+                    <div className="row-actions">
+                      <span className={`amount-badge ${proposal.status === 'denied' ? 'amount-badge-red' : proposal.status === 'approved' ? 'amount-badge-green' : 'amount-badge-yellow'}`}>${proposal.amount}</span>
+                      <span className={`badge ${statusBadge(proposal.status)}`}>{proposal.status}</span>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
             )}
 
-            {/* Events Tab */}
+            {/* EVENTS TAB */}
             {activeTab === 'events' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-bold">Event Proposals</h2>
-                  <button
-                    onClick={() => setShowEventForm(!showEventForm)}
-                    className="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800"
-                  >
-                    + New Event
-                  </button>
+              <div className="content-card">
+                <div className="content-head">
+                  <div className="content-title">Event Proposals</div>
+                  <button className="new-btn" onClick={() => setShowEventForm(!showEventForm)}>+ New Event</button>
                 </div>
-
                 {showEventForm && (
-                  <form onSubmit={submitEventProposal} className="flex flex-col gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
-                    <input
-                      placeholder="Event title"
-                      value={eventTitle}
-                      onChange={(e) => setEventTitle(e.target.value)}
-                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                      required
-                    />
-                    <textarea
-                      placeholder="Description"
-                      value={eventDescription}
-                      onChange={(e) => setEventDescription(e.target.value)}
-                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                      rows={2}
-                    />
-                    <input
-                      placeholder="Location"
-                      value={eventLocation}
-                      onChange={(e) => setEventLocation(e.target.value)}
-                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                      required
-                    />
-                    <input
-                      type="datetime-local"
-                      value={eventDate}
-                      onChange={(e) => setEventDate(e.target.value)}
-                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                      required
-                    />
-                    <label className="flex items-center gap-2 text-sm text-gray-600">
-                      <input
-                        type="checkbox"
-                        checked={requiresPayment}
-                        onChange={(e) => setRequiresPayment(e.target.checked)}
-                      />
-                      Requires payment
-                    </label>
-                    {requiresPayment && (
-                      <input
-                        placeholder="Price ($)"
-                        type="number"
-                        value={eventPrice}
-                        onChange={(e) => setEventPrice(e.target.value)}
-                        className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                        required
-                      />
-                    )}
-                    <button type="submit" className="bg-black text-white py-2 rounded-lg text-sm hover:bg-gray-800">
-                      Submit Event Proposal
-                    </button>
-                  </form>
+                  <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
+                    <form onSubmit={submitEventProposal} className="form-box" style={{ margin: 0 }}>
+                      <input className="form-input" placeholder="Event title" value={eventTitle} onChange={e => setEventTitle(e.target.value)} required />
+                      <textarea className="form-input" placeholder="Description" value={eventDescription} onChange={e => setEventDescription(e.target.value)} rows={2} />
+                      <LocationPicker value={eventLocation} onChange={(addr) => setEventLocation(addr)} />
+                      <input className="form-input" type="datetime-local" value={eventDate} onChange={e => setEventDate(e.target.value)} required />
+                      <label className="checkbox-label">
+                        <input type="checkbox" checked={requiresPayment} onChange={e => setRequiresPayment(e.target.checked)} />
+                        Requires payment
+                      </label>
+                      {requiresPayment && (
+                        <input className="form-input" type="number" placeholder="Price ($)" value={eventPrice} onChange={e => setEventPrice(e.target.value)} required />
+                      )}
+                      <button type="submit" className="form-submit">Submit Event Proposal</button>
+                    </form>
+                  </div>
                 )}
-
                 {events.length === 0 ? (
-                  <p className="text-gray-400 text-sm">No events yet</p>
-                ) : (
-                  <div className="divide-y">
-                    {events.map(event => (
-                      <div key={event.id} className="py-4 flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{event.title}</p>
-                          <p className="text-sm text-gray-500">{event.location} · {new Date(event.date).toLocaleDateString()}</p>
-                          <p className="text-sm text-gray-400">{event.description}</p>
-                        </div>
-                        <span className={`text-sm px-3 py-1 rounded-full font-medium ${statusBadge(event.status)}`}>
-                          {event.status}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="empty"><div className="empty-icon">📅</div>No events yet</div>
+                ) : events.map(event => (
+                  <div key={event.id} className="list-row">
+                    <div style={{ flex: 1 }}>
+                      <div className="row-title">{event.title}</div>
+                      <div className="row-sub">📍 {event.location} · {new Date(event.date).toLocaleDateString()}</div>
+                      <div className="row-sub" style={{ marginTop: '2px' }}>{event.description}</div>
+                    </div>
+                    <span className={`badge ${statusBadge(event.status)}`}>{event.status}</span>
                   </div>
-                )}
+                ))}
               </div>
             )}
 
-            {/* Announcements Tab */}
+            {/* ANNOUNCEMENTS TAB */}
             {activeTab === 'announcements' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-bold">Announcements</h2>
-                  <button
-                    onClick={() => setShowAnnouncementForm(!showAnnouncementForm)}
-                    className="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800"
-                  >
-                    + New Announcement
-                  </button>
+              <div className="content-card">
+                <div className="content-head">
+                  <div className="content-title">Announcements</div>
+                  <button className="new-btn" onClick={() => { setShowAnnouncementForm(!showAnnouncementForm); setEditingId(null) }}>+ New Announcement</button>
                 </div>
-
                 {showAnnouncementForm && (
-                  <form onSubmit={submitAnnouncement} className="flex flex-col gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
-                    <input
-                      placeholder="Announcement title"
-                      value={announcementTitle}
-                      onChange={(e) => setAnnouncementTitle(e.target.value)}
-                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                      required
-                    />
-                    <textarea
-                      placeholder="Write your message to members..."
-                      value={announcementMessage}
-                      onChange={(e) => setAnnouncementMessage(e.target.value)}
-                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                      rows={4}
-                      required
-                    />
-                    <button type="submit" className="bg-black text-white py-2 rounded-lg text-sm hover:bg-gray-800">
-                      Send Announcement
-                    </button>
-                  </form>
-                )}
-
-                {announcements.length === 0 ? (
-                  <p className="text-gray-400 text-sm">No announcements yet</p>
-                ) : (
-                  <div className="divide-y">
-                    {announcements.map(a => (
-                      <div key={a.id} className="py-4">
-                        <div className="flex justify-between items-start">
-                          <p className="font-medium">{a.title}</p>
-                          <p className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString()}</p>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">{a.message}</p>
-                      </div>
-                    ))}
+                  <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
+                    <form onSubmit={submitAnnouncement} className="form-box" style={{ margin: 0 }}>
+                      <input className="form-input" placeholder="Announcement title" value={announcementTitle} onChange={e => setAnnouncementTitle(e.target.value)} required />
+                      <textarea className="form-input" placeholder="Write your message to members..." value={announcementMessage} onChange={e => setAnnouncementMessage(e.target.value)} rows={4} required />
+                      <button type="submit" className="form-submit">Send Announcement</button>
+                    </form>
                   </div>
                 )}
+                {announcements.length === 0 ? (
+                  <div className="empty"><div className="empty-icon">📣</div>No announcements yet</div>
+                ) : announcements.map(a => (
+                  <div key={a.id} className="list-row" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+
+                    {editingId === a.id ? (
+                      /* ── EDIT FORM ── */
+                      <div className="edit-form">
+                        <div className="edit-label">✏️ Editing announcement</div>
+                        <div>
+                          <div className="edit-label">Title</div>
+                          <input
+                            className="form-input"
+                            value={editTitle}
+                            onChange={e => setEditTitle(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <div className="edit-label">Message</div>
+                          <textarea
+                            className="form-input"
+                            value={editMessage}
+                            onChange={e => setEditMessage(e.target.value)}
+                            rows={4}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button className="form-submit" style={{ flex: 1 }} onClick={() => saveEdit(a.id)}>Save changes</button>
+                          <button className="cancel-btn" style={{ flex: 1 }} onClick={() => setEditingId(null)}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* ── NORMAL VIEW ── */
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '6px' }}>
+                          <div className="row-title">{a.title}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span className="row-sub">{new Date(a.created_at).toLocaleDateString()}</span>
+                            <button
+                              onClick={() => {
+                                setEditingId(a.id)
+                                setEditTitle(a.title)
+                                setEditMessage(a.message)
+                                setShowAnnouncementForm(false)
+                              }}
+                              style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '7px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (confirm('Delete this announcement?')) {
+                                  await supabase.from('announcements').delete().eq('id', a.id)
+                                  fetchData()
+                                }
+                              }}
+                              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '7px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                        <div className="row-sub" style={{ fontSize: '13px', lineHeight: '1.5' }}>{a.message}</div>
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* Calendar Tab */}
+            {/* CALENDAR TAB */}
             {activeTab === 'calendar' && (
-              <div>
-                <Calendar />
+              <div className="content-card">
+                <div className="content-head">
+                  <div className="content-title">Campus Calendar</div>
+                </div>
+                <div style={{ padding: '24px' }}>
+                  <Calendar />
+                </div>
               </div>
             )}
           </>
         )}
       </div>
-    </div>
+    </>
   )
 }

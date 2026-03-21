@@ -171,14 +171,14 @@ export default function AdminDashboard() {
           font-weight: 600;
           cursor: pointer;
           border: 2px solid #e5e7eb;
-          background: #000000;
-          color: #ffffff;
+          background: #ffffff;
+          color: #6b7280;
           font-family: 'Inter', sans-serif;
           transition: all 0.15s;
         }
 
         .tab-btn:hover { border-color: #000000; color: #000000; }
-        .tab-btn.active { background: #000000; color: #fff; border-color: #000000; }
+        .tab-btn.active { background: #ffffff; color: #111113; border-color: #111113; }
 
         /* CONTENT CARD */
         .content-card {
