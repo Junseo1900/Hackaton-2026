@@ -31,9 +31,18 @@ export default function LoginPage() {
       .from('profiles').select('role').eq('id', data.user.id).single()
 
     const role = profile?.role
-    if (role === 'admin') router.push('/admin')
-    else if (role === 'org_leader') router.push('/leader')
-    else router.push('/member')
+
+// Check if selected portal matches actual role
+if (role !== selectedRole) {
+  setError('Wrong portal selected. Please choose the correct portal for your account.')
+  setLoading(false)
+  await supabase.auth.signOut()
+  return
+}
+
+if (role === 'admin') router.push('/admin')
+else if (role === 'org_leader') router.push('/leader')
+else router.push('/member')
   }
 
   return (
