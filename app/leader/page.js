@@ -5,13 +5,26 @@ import { useRouter } from 'next/navigation'
 
 export default function LeaderDashboard() {
   const [proposals, setProposals] = useState([])
+  const [events, setEvents] = useState([])
   const [org, setOrg] = useState(null)
-  const [showForm, setShowForm] = useState(false)
+  const [activeTab, setActiveTab] = useState('budget')
+  const [showBudgetForm, setShowBudgetForm] = useState(false)
+  const [showEventForm, setShowEventForm] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  // Budget form state
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
+
+  // Event form state
+  const [eventTitle, setEventTitle] = useState('')
+  const [eventDescription, setEventDescription] = useState('')
+  const [eventDate, setEventDate] = useState('')
+  const [eventLocation, setEventLocation] = useState('')
+  const [requiresPayment, setRequiresPayment] = useState(false)
+  const [eventPrice, setEventPrice] = useState('')
 
   useEffect(() => {
     fetchData()
@@ -34,12 +47,20 @@ export default function LeaderDashboard() {
         .select('*')
         .eq('org_id', orgData.id)
         .order('created_at', { ascending: false })
+
+      const { data: eventsData } = await supabase
+        .from('events')
+        .select('*')
+        .eq('org_id', orgData.id)
+        .order('created_at', { ascending: false })
+
       setProposals(proposalsData || [])
+      setEvents(eventsData || [])
     }
     setLoading(false)
   }
 
-  const submitProposal = async (e) => {
+  const submitBudgetProposal = async (e) => {
     e.preventDefault()
     await supabase.from('proposals').insert({
       org_id: org.id,
@@ -51,13 +72,41 @@ export default function LeaderDashboard() {
     setTitle('')
     setAmount('')
     setDescription('')
-    setShowForm(false)
+    setShowBudgetForm(false)
+    fetchData()
+  }
+
+  const submitEventProposal = async (e) => {
+    e.preventDefault()
+    await supabase.from('events').insert({
+      org_id: org.id,
+      title: eventTitle,
+      description: eventDescription,
+      date: eventDate,
+      location: eventLocation,
+      requires_payment: requiresPayment,
+      price: requiresPayment ? parseFloat(eventPrice) : 0,
+      status: 'pending'
+    })
+    setEventTitle('')
+    setEventDescription('')
+    setEventDate('')
+    setEventLocation('')
+    setRequiresPayment(false)
+    setEventPrice('')
+    setShowEventForm(false)
     fetchData()
   }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/')
+  }
+
+  const statusBadge = (status) => {
+    if (status === 'approved') return 'bg-green-100 text-green-700'
+    if (status === 'denied') return 'bg-red-100 text-red-700'
+    return 'bg-yellow-100 text-yellow-700'
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
@@ -69,9 +118,7 @@ export default function LeaderDashboard() {
           <h1 className="text-xl font-bold">OrgBridge</h1>
           <p className="text-sm text-gray-500">{org?.name || 'Org Leader Portal'}</p>
         </div>
-        <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-black">
-          Sign out
-        </button>
+        <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-black">Sign out</button>
       </div>
 
       <div className="max-w-4xl mx-auto px-8 py-8">
@@ -82,85 +129,192 @@ export default function LeaderDashboard() {
         ) : (
           <>
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-6 mb-8">
-              <div className="bg-white rounded-2xl p-6 shadow-sm">
+            <div className="grid grid-cols-4 gap-4 mb-8">
+              <div className="bg-white rounded-2xl p-5 shadow-sm">
                 <p className="text-gray-500 text-sm">Total Proposals</p>
-                <p className="text-4xl font-bold mt-1">{proposals.length}</p>
+                <p className="text-3xl font-bold mt-1">{proposals.length}</p>
               </div>
-              <div className="bg-white rounded-2xl p-6 shadow-sm">
+              <div className="bg-white rounded-2xl p-5 shadow-sm">
                 <p className="text-gray-500 text-sm">Approved</p>
-                <p className="text-4xl font-bold mt-1 text-green-500">{proposals.filter(p => p.status === 'approved').length}</p>
+                <p className="text-3xl font-bold mt-1 text-green-500">{proposals.filter(p => p.status === 'approved').length}</p>
               </div>
-              <div className="bg-white rounded-2xl p-6 shadow-sm">
+              <div className="bg-white rounded-2xl p-5 shadow-sm">
                 <p className="text-gray-500 text-sm">Pending</p>
-                <p className="text-4xl font-bold mt-1 text-yellow-500">{proposals.filter(p => p.status === 'pending').length}</p>
+                <p className="text-3xl font-bold mt-1 text-yellow-500">{proposals.filter(p => p.status === 'pending').length}</p>
+              </div>
+              <div className="bg-white rounded-2xl p-5 shadow-sm">
+                <p className="text-gray-500 text-sm">Events</p>
+                <p className="text-3xl font-bold mt-1">{events.length}</p>
               </div>
             </div>
 
-            {/* Submit Proposal */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold">Budget Proposals</h2>
-                <button
-                  onClick={() => setShowForm(!showForm)}
-                  className="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800"
-                >
-                  + New Proposal
-                </button>
-              </div>
+            {/* Tabs */}
+            <div className="flex gap-2 mb-6">
+              <button
+                onClick={() => setActiveTab('budget')}
+                className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'budget' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
+              >
+                Budget Proposals
+              </button>
+              <button
+                onClick={() => setActiveTab('events')}
+                className={`px-5 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'events' ? 'bg-black text-white' : 'bg-white text-gray-500 hover:bg-gray-100'}`}
+              >
+                Event Proposals
+              </button>
+            </div>
 
-              {showForm && (
-                <form onSubmit={submitProposal} className="flex flex-col gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
-                  <input
-                    placeholder="Proposal title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                    required
-                  />
-                  <input
-                    placeholder="Amount ($)"
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                    required
-                  />
-                  <textarea
-                    placeholder="Description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                    rows={3}
-                  />
-                  <button type="submit" className="bg-black text-white py-2 rounded-lg text-sm hover:bg-gray-800">
-                    Submit Proposal
+            {/* Budget Tab */}
+            {activeTab === 'budget' && (
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold">Budget Proposals</h2>
+                  <button
+                    onClick={() => setShowBudgetForm(!showBudgetForm)}
+                    className="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800"
+                  >
+                    + New Proposal
                   </button>
-                </form>
-              )}
-
-              {proposals.length === 0 ? (
-                <p className="text-gray-400 text-sm">No proposals yet</p>
-              ) : (
-                <div className="divide-y">
-                  {proposals.map(proposal => (
-                    <div key={proposal.id} className="py-4 flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">{proposal.title}</p>
-                        <p className="text-sm text-gray-500">${proposal.amount} · {proposal.description}</p>
-                      </div>
-                      <span className={`text-sm px-3 py-1 rounded-full font-medium ${
-                        proposal.status === 'approved' ? 'bg-green-100 text-green-700' :
-                        proposal.status === 'denied' ? 'bg-red-100 text-red-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {proposal.status}
-                      </span>
-                    </div>
-                  ))}
                 </div>
-              )}
-            </div>
+
+                {showBudgetForm && (
+                  <form onSubmit={submitBudgetProposal} className="flex flex-col gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
+                    <input
+                      placeholder="Proposal title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                      required
+                    />
+                    <input
+                      placeholder="Amount ($)"
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                      required
+                    />
+                    <textarea
+                      placeholder="Description — what is this budget for?"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                      rows={3}
+                      required
+                    />
+                    <button type="submit" className="bg-black text-white py-2 rounded-lg text-sm hover:bg-gray-800">
+                      Submit Proposal
+                    </button>
+                  </form>
+                )}
+
+                {proposals.length === 0 ? (
+                  <p className="text-gray-400 text-sm">No proposals yet</p>
+                ) : (
+                  <div className="divide-y">
+                    {proposals.map(proposal => (
+                      <div key={proposal.id} className="py-4 flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{proposal.title}</p>
+                          <p className="text-sm text-gray-500">${proposal.amount} · {proposal.description}</p>
+                        </div>
+                        <span className={`text-sm px-3 py-1 rounded-full font-medium ${statusBadge(proposal.status)}`}>
+                          {proposal.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Events Tab */}
+            {activeTab === 'events' && (
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold">Event Proposals</h2>
+                  <button
+                    onClick={() => setShowEventForm(!showEventForm)}
+                    className="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800"
+                  >
+                    + New Event
+                  </button>
+                </div>
+
+                {showEventForm && (
+                  <form onSubmit={submitEventProposal} className="flex flex-col gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
+                    <input
+                      placeholder="Event title"
+                      value={eventTitle}
+                      onChange={(e) => setEventTitle(e.target.value)}
+                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                      required
+                    />
+                    <textarea
+                      placeholder="Description"
+                      value={eventDescription}
+                      onChange={(e) => setEventDescription(e.target.value)}
+                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                      rows={2}
+                    />
+                    <input
+                      placeholder="Location"
+                      value={eventLocation}
+                      onChange={(e) => setEventLocation(e.target.value)}
+                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                      required
+                    />
+                    <input
+                      type="datetime-local"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                      required
+                    />
+                    <label className="flex items-center gap-2 text-sm text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={requiresPayment}
+                        onChange={(e) => setRequiresPayment(e.target.checked)}
+                      />
+                      Requires payment
+                    </label>
+                    {requiresPayment && (
+                      <input
+                        placeholder="Price ($)"
+                        type="number"
+                        value={eventPrice}
+                        onChange={(e) => setEventPrice(e.target.value)}
+                        className="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                        required
+                      />
+                    )}
+                    <button type="submit" className="bg-black text-white py-2 rounded-lg text-sm hover:bg-gray-800">
+                      Submit Event Proposal
+                    </button>
+                  </form>
+                )}
+
+                {events.length === 0 ? (
+                  <p className="text-gray-400 text-sm">No events yet</p>
+                ) : (
+                  <div className="divide-y">
+                    {events.map(event => (
+                      <div key={event.id} className="py-4 flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{event.title}</p>
+                          <p className="text-sm text-gray-500">{event.location} · {new Date(event.date).toLocaleDateString()}</p>
+                          <p className="text-sm text-gray-400">{event.description}</p>
+                        </div>
+                        <span className={`text-sm px-3 py-1 rounded-full font-medium ${statusBadge(event.status)}`}>
+                          {event.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
