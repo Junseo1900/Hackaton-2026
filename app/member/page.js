@@ -11,8 +11,10 @@ export default function MemberDashboard() {
   const [orgs, setOrgs] = useState([])
   const [events, setEvents] = useState([])
   const [announcements, setAnnouncements] = useState([])
+  const [posts, setPosts] = useState([])
   const [activeTab, setActiveTab] = useState('home')
   const [loading, setLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState(null)
 
   // Location modal
   const [locationModal, setLocationModal] = useState(null)
@@ -27,12 +29,21 @@ export default function MemberDashboard() {
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [paymentLoading, setPaymentLoading] = useState(false)
 
+  // Community post form
+  const [showPostForm, setShowPostForm] = useState(false)
+  const [postTitle, setPostTitle] = useState('')
+  const [postContent, setPostContent] = useState('')
+  const [postOrg, setPostOrg] = useState('')
+  const [postLoading, setPostLoading] = useState(false)
+  const [selectedPost, setSelectedPost] = useState(null)
+
   const router = useRouter()
 
   useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
     const { data: { user } } = await supabase.auth.getUser()
+    setCurrentUser(user)
 
     const { data: memberOrgs } = await supabase
       .from('org_members')
@@ -46,6 +57,7 @@ export default function MemberDashboard() {
       .order('date', { ascending: true })
 
     const orgIds = (memberOrgs || []).map(o => o.org_id)
+
     let announcementsData = []
     if (orgIds.length > 0) {
       const { data } = await supabase
@@ -56,9 +68,21 @@ export default function MemberDashboard() {
       announcementsData = data || []
     }
 
+    // Fetch community posts
+    let postsData = []
+    if (orgIds.length > 0) {
+      const { data } = await supabase
+        .from('posts')
+        .select('*, orgs(name)')
+        .in('org_id', orgIds)
+        .order('created_at', { ascending: false })
+      postsData = data || []
+    }
+
     setOrgs(memberOrgs || [])
     setEvents(eventsData || [])
     setAnnouncements(announcementsData)
+    setPosts(postsData)
     setLoading(false)
   }
 
@@ -97,6 +121,49 @@ export default function MemberDashboard() {
     setPaymentSuccess(true)
   }
 
+  // Community posts
+  const submitPost = async (e) => {
+    e.preventDefault()
+    if (!postTitle || !postContent || !postOrg) return
+    setPostLoading(true)
+    const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', currentUser.id).single()
+    await supabase.from('posts').insert({
+      org_id: postOrg,
+      user_id: currentUser.id,
+      author_name: profile?.full_name || currentUser.email,
+      title: postTitle,
+      content: postContent,
+      likes: 0,
+    })
+    setPostTitle(''); setPostContent(''); setPostOrg('')
+    setShowPostForm(false)
+    setPostLoading(false)
+    fetchData()
+  }
+
+  const likePost = async (post) => {
+    await supabase.from('posts').update({ likes: (post.likes || 0) + 1 }).eq('id', post.id)
+    fetchData()
+  }
+
+  const deletePost = async (postId) => {
+    if (confirm('Delete this post?')) {
+      await supabase.from('posts').delete().eq('id', postId)
+      fetchData()
+    }
+  }
+
+  const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '??'
+  const timeAgo = (date) => {
+    const diff = Date.now() - new Date(date)
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return 'just now'
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    return `${Math.floor(hrs / 24)}d ago`
+  }
+
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f4ff', fontFamily: 'Inter, sans-serif', fontSize: '16px', color: '#6b7280' }}>
       Loading...
@@ -110,44 +177,11 @@ export default function MemberDashboard() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #f0f4ff; font-family: 'Inter', sans-serif; }
 
-        .navbar {
-          background: #fff;
-          border-bottom: 2px solid #e5e7eb;
-          padding: 0 40px;
-          height: 64px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          position: sticky;
-          top: 0;
-          z-index: 100;
-        }
-
+        .navbar { background: #fff; border-bottom: 2px solid #e5e7eb; padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
         .nav-logo { height: 140px; width: auto; object-fit: contain; }
         .nav-right { display: flex; align-items: center; gap: 16px; }
-
-        .nav-badge {
-          background: #ffffff;
-          color: #000000;
-          font-size: 12px;
-          font-weight: 600;
-          padding: 4px 12px;
-          border-radius: 99px;
-          border: 1px solid #8b8e8f;
-        }
-
-        .signout-btn {
-          background: none;
-          border: 2px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 8px 16px;
-          font-size: 14px;
-          font-weight: 500;
-          color: #78797a;
-          cursor: pointer;
-          font-family: 'Inter', sans-serif;
-          transition: all 0.15s;
-        }
+        .nav-badge { background: #ffffff; color: #000000; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 99px; border: 1px solid #8b8e8f; }
+        .signout-btn { background: none; border: 2px solid #e5e7eb; border-radius: 8px; padding: 8px 16px; font-size: 14px; font-weight: 500; color: #78797a; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
         .signout-btn:hover { border-color: #06b6d4; color: #0891b2; }
 
         .main { max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
@@ -176,7 +210,6 @@ export default function MemberDashboard() {
 
         .row-title { font-size: 15px; font-weight: 600; color: #1a1a2e; margin-bottom: 3px; }
         .row-sub { font-size: 13px; color: #9ca3af; }
-        .row-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
         .badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px; white-space: nowrap; }
         .badge-green { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
@@ -187,12 +220,47 @@ export default function MemberDashboard() {
 
         .org-tag { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; display: inline-block; margin-bottom: 4px; }
 
-        /* CLICKABLE LOCATION */
         .location-link { font-size: 13px; color: #2563eb; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; text-decoration: underline; text-underline-offset: 2px; transition: color 0.15s; }
         .location-link:hover { color: #1d4ed8; }
 
         .empty { padding: 48px 24px; text-align: center; color: #9ca3af; font-size: 15px; }
         .empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+        /* ── COMMUNITY FEED ── */
+        .new-btn { background: #000000; color: #ffffff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+        .new-btn:hover { background: #333; }
+
+        .post-form { padding: 20px 24px; border-bottom: 2px solid #f3f4f6; background: #fafafa; display: flex; flex-direction: column; gap: 10px; }
+        .post-input { width: 100%; background: #fff; border: 2px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; font-size: 14px; color: #1a1a2e; font-family: 'Inter', sans-serif; outline: none; transition: border 0.15s; }
+        .post-input:focus { border-color: #000; }
+        .post-input::placeholder { color: #c0c4cc; }
+        .post-submit { background: #000; color: #fff; border: none; border-radius: 8px; padding: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.15s; }
+        .post-submit:hover { background: #333; }
+        .post-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* POST CARD */
+        .post-card { padding: 18px 24px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: background 0.15s; }
+        .post-card:last-child { border-bottom: none; }
+        .post-card:hover { background: #f9fafb; }
+
+        .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .post-avatar { width: 36px; height: 36px; border-radius: 50%; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+        .post-author { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+        .post-meta { font-size: 11px; color: #9ca3af; margin-top: 1px; display: flex; align-items: center; gap: 6px; }
+        .post-org-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px; background: #f0f4ff; color: #2563eb; border: 1px solid #bfdbfe; }
+
+        .post-title { font-size: 15px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; line-height: 1.4; }
+        .post-content { font-size: 13px; color: #6b7280; line-height: 1.6; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+        .post-actions { display: flex; align-items: center; gap: 12px; }
+        .post-action-btn { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: #9ca3af; cursor: pointer; background: none; border: none; font-family: 'Inter', sans-serif; padding: 5px 10px; border-radius: 6px; transition: all 0.15s; }
+        .post-action-btn:hover { background: #f3f4f6; color: #1a1a2e; }
+        .post-action-btn.liked { color: #dc2626; }
+        .post-action-btn.delete { color: #dc2626; }
+        .post-action-btn.delete:hover { background: #fef2f2; }
+
+        /* POST DETAIL MODAL */
+        .post-detail-content { font-size: 14px; color: #374151; line-height: 1.8; white-space: pre-wrap; }
 
         /* MODALS */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -203,11 +271,9 @@ export default function MemberDashboard() {
         .modal-close:hover { background: #e5e7eb; }
         .modal-body { padding: 20px 22px; }
 
-        /* MAP */
         .map-wrap { border-radius: 10px; overflow: hidden; border: 2px solid #e5e7eb; height: 320px; }
         .map-address { font-size: 13px; color: #374151; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; margin-top: 12px; line-height: 1.5; }
 
-        /* PAYMENT */
         .pay-field { margin-bottom: 16px; }
         .pay-label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
         .pay-input { width: 100%; background: #f9fafb; border: 2px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; font-size: 15px; color: #1a1a2e; font-family: 'Inter', sans-serif; outline: none; transition: border 0.15s; }
@@ -253,13 +319,14 @@ export default function MemberDashboard() {
           <div className="stat-card"><div className="stat-label">My Organizations</div><div className="stat-value">{orgs.length}</div></div>
           <div className="stat-card"><div className="stat-label">Upcoming Events</div><div className="stat-value blue">{events.length}</div></div>
           <div className="stat-card"><div className="stat-label">Announcements</div><div className="stat-value green">{announcements.length}</div></div>
-          <div className="stat-card"><div className="stat-label">Paid Events</div><div className="stat-value cyan">{events.filter(e => e.requires_payment).length}</div></div>
+          <div className="stat-card"><div className="stat-label">Community Posts</div><div className="stat-value cyan">{posts.length}</div></div>
         </div>
 
         {/* TABS */}
         <div className="tabs">
           {[
             { id: 'home', label: '🏠 Home' },
+            { id: 'community', label: `💬 Community${posts.length > 0 ? ` (${posts.length})` : ''}` },
             { id: 'announcements', label: `📣 Announcements${announcements.length > 0 ? ` (${announcements.length})` : ''}` },
             { id: 'calendar', label: '📆 Calendar' },
           ].map(t => (
@@ -301,9 +368,7 @@ export default function MemberDashboard() {
                   <div style={{ flex: 1 }}>
                     <div className="row-title">{event.title}</div>
                     <div className="row-sub">🏛 {event.orgs?.name}</div>
-                    <div className="location-link" onClick={() => openLocationMap(event.location)}>
-                      📍 {event.location}
-                    </div>
+                    <div className="location-link" onClick={() => openLocationMap(event.location)}>📍 {event.location}</div>
                     <div className="row-sub" style={{ marginTop: '2px' }}>📅 {new Date(event.date).toLocaleDateString()}</div>
                   </div>
                   {event.requires_payment ? (
@@ -315,6 +380,82 @@ export default function MemberDashboard() {
               ))}
             </div>
           </>
+        )}
+
+        {/* COMMUNITY TAB */}
+        {activeTab === 'community' && (
+          <div className="content-card">
+            <div className="content-head">
+              <div className="content-title">💬 Community Feed</div>
+              <button className="new-btn" onClick={() => setShowPostForm(!showPostForm)}>
+                {showPostForm ? 'Cancel' : '+ New Post'}
+              </button>
+            </div>
+
+            {/* POST FORM */}
+            {showPostForm && (
+              <form onSubmit={submitPost} className="post-form">
+                <select className="post-input" value={postOrg} onChange={e => setPostOrg(e.target.value)} required>
+                  <option value="">Select organization...</option>
+                  {orgs.map(o => <option key={o.org_id} value={o.org_id}>{o.orgs?.name}</option>)}
+                </select>
+                <input
+                  className="post-input"
+                  placeholder="Post title..."
+                  value={postTitle}
+                  onChange={e => setPostTitle(e.target.value)}
+                  required
+                />
+                <textarea
+                  className="post-input"
+                  placeholder="Share your story, feedback, or message to your org leader..."
+                  value={postContent}
+                  onChange={e => setPostContent(e.target.value)}
+                  rows={4}
+                  required
+                />
+                <button type="submit" className="post-submit" disabled={postLoading}>
+                  {postLoading ? 'Posting...' : '📤 Share Post'}
+                </button>
+              </form>
+            )}
+
+            {/* POSTS LIST */}
+            {posts.length === 0 ? (
+              <div className="empty">
+                <div className="empty-icon">💬</div>
+                No posts yet — be the first to share!
+              </div>
+            ) : posts.map(post => (
+              <div key={post.id} className="post-card" onClick={() => setSelectedPost(post)}>
+                <div className="post-header">
+                  <div className="post-avatar">{getInitials(post.author_name)}</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="post-author">{post.author_name}</div>
+                    <div className="post-meta">
+                      <span>{timeAgo(post.created_at)}</span>
+                      {post.orgs?.name && <span className="post-org-tag">{post.orgs.name}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="post-title">{post.title}</div>
+                <div className="post-content">{post.content}</div>
+                <div className="post-actions" onClick={e => e.stopPropagation()}>
+                  <button className="post-action-btn" onClick={() => likePost(post)}>
+                    ❤️ {post.likes || 0}
+                  </button>
+                  <button className="post-action-btn" onClick={() => setSelectedPost(post)}>
+                    💬 Read more
+                  </button>
+                  {post.user_id === currentUser?.id && (
+                    <button className="post-action-btn delete" onClick={() => deletePost(post.id)}>
+                      🗑 Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
 
         {/* ANNOUNCEMENTS TAB */}
@@ -347,6 +488,36 @@ export default function MemberDashboard() {
           </div>
         )}
       </div>
+
+      {/* POST DETAIL MODAL */}
+      {selectedPost && (
+        <div className="modal-overlay" onClick={() => setSelectedPost(null)}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <div className="modal-head">
+              <div className="modal-title">{selectedPost.title}</div>
+              <button className="modal-close" onClick={() => setSelectedPost(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="post-header" style={{ marginBottom: '16px' }}>
+                <div className="post-avatar">{getInitials(selectedPost.author_name)}</div>
+                <div>
+                  <div className="post-author">{selectedPost.author_name}</div>
+                  <div className="post-meta">
+                    <span>{timeAgo(selectedPost.created_at)}</span>
+                    {selectedPost.orgs?.name && <span className="post-org-tag">{selectedPost.orgs.name}</span>}
+                  </div>
+                </div>
+              </div>
+              <div className="post-detail-content">{selectedPost.content}</div>
+              <div className="post-actions" style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
+                <button className="post-action-btn" onClick={() => { likePost(selectedPost); setSelectedPost(null) }}>
+                  ❤️ {selectedPost.likes || 0} likes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* LOCATION MAP MODAL */}
       {locationModal && (
