@@ -241,7 +241,7 @@ export default function LeaderOrgDetail({ params }) {
           <img src="/logo.png" alt="Logo" className="nav-logo" />
         </div>
         <div className="nav-right">
-          <span className="nav-badge">👑 {org?.name}</span>
+          <span className="nav-badge"> Leader {org?.name}</span>
           <button onClick={handleLogout} className="signout-btn">Sign out</button>
         </div>
       </nav>
@@ -259,7 +259,7 @@ export default function LeaderOrgDetail({ params }) {
         <div className="tabs">
           {[
             { id: 'budget', label: '💰 Budget Proposals' },
-            { id: 'events', label: '📅 Event Proposals' },
+            { id: 'events', label: '🎫 Event Proposals' },
             { id: 'announcements', label: '📣 Announcements' },
             { id: 'community', label: `💬 Community${posts.length > 0 ? ` (${posts.length})` : ''}` },
             { id: 'calendar', label: '📆 Calendar' },

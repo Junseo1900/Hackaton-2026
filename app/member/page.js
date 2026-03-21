@@ -97,14 +97,14 @@ export default function MemberLobby() {
       <nav className="navbar">
         <img src="/logo.png" alt="Logo" className="nav-logo" />
         <div className="nav-right">
-          <span className="nav-badge">🙂 Student Portal</span>
+          <span className="nav-badge"> Student Portal</span>
           <button onClick={handleLogout} className="signout-btn">Sign out</button>
         </div>
       </nav>
 
       <div className="main">
         <div className="hero">
-          <div className="hero-title">Campus Organizations 🏛</div>
+          <div className="hero-title">Campus Organizations </div>
           <div className="hero-sub">Browse and join organizations on campus</div>
         </div>
 
