@@ -54,7 +54,6 @@ export default function AdminDashboard() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #f0f4ff; font-family: 'Inter', sans-serif; }
 
-        /* NAVBAR */
         .navbar {
           background: #fff;
           border-bottom: 2px solid #e5e7eb;
@@ -68,17 +67,8 @@ export default function AdminDashboard() {
           z-index: 100;
         }
 
-        .nav-logo {
-          height: 140px;
-          width: auto;
-          object-fit: contain;
-        }
-
-        .nav-right {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
+        .nav-logo { height: 140px; width: auto; object-fit: contain; }
+        .nav-right { display: flex; align-items: center; gap: 16px; }
 
         .nav-badge {
           background: #ffffff;
@@ -104,24 +94,9 @@ export default function AdminDashboard() {
         }
         .signout-btn:hover { border-color: #06b6d4; color: #0891b2; }
 
-        /* MAIN */
         .main { max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
+        .page-sub { font-size: 15px; color: #6b7280; margin-bottom: 32px; }
 
-        .page-title {
-          font-size: 26px;
-          font-weight: 800;
-          color: #1a1a2e;
-          letter-spacing: -0.5px;
-          margin-bottom: 4px;
-        }
-
-        .page-sub {
-          font-size: 15px;
-          color: #6b7280;
-          margin-bottom: 32px;
-        }
-
-        /* STAT CARDS */
         .stats {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
@@ -137,32 +112,14 @@ export default function AdminDashboard() {
           border: 2px solid #e5e7eb;
         }
 
-        .stat-label {
-          font-size: 13px;
-          color: #9ca3af;
-          font-weight: 500;
-          margin-bottom: 8px;
-        }
-
-        .stat-value {
-          font-size: 32px;
-          font-weight: 800;
-          color: #1a1a2e;
-          letter-spacing: -1px;
-          line-height: 1;
-        }
-        
+        .stat-label { font-size: 13px; color: #9ca3af; font-weight: 500; margin-bottom: 8px; }
+        .stat-value { font-size: 32px; font-weight: 800; color: #1a1a2e; letter-spacing: -1px; line-height: 1; }
         .stat-value.green { color: #16a34a; }
-        .stat-value.yellow { color: #e7dc12; }
+        .stat-value.yellow { color: #d97706; }
         .stat-value.red { color: #dc2626; }
-        .stat-value.cyan { color: #0226ee; }
+        .stat-value.cyan { color: #2563eb; }
 
-        /* TABS */
-        .tabs {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 20px;
-        }
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
 
         .tab-btn {
           padding: 10px 20px;
@@ -180,7 +137,6 @@ export default function AdminDashboard() {
         .tab-btn:hover { border-color: #000000; color: #000000; }
         .tab-btn.active { background: #ffffff; color: #111113; border-color: #111113; }
 
-        /* CONTENT CARD */
         .content-card {
           background: #fff;
           border-radius: 18px;
@@ -197,11 +153,7 @@ export default function AdminDashboard() {
           justify-content: space-between;
         }
 
-        .content-title {
-          font-size: 17px;
-          font-weight: 700;
-          color: #1a1a2e;
-        }
+        .content-title { font-size: 17px; font-weight: 700; color: #1a1a2e; }
 
         .count-badge {
           background: #fef3c7;
@@ -212,12 +164,11 @@ export default function AdminDashboard() {
           border-radius: 99px;
         }
 
-        .count-badge.cyan {
+        .count-badge.blue {
           background: #000000;
           color: #ffffff;
         }
 
-        /* LIST ROWS */
         .list-row {
           display: flex;
           align-items: center;
@@ -226,38 +177,19 @@ export default function AdminDashboard() {
           border-bottom: 1px solid #f3f4f6;
           cursor: pointer;
           transition: background 0.1s;
+          gap: 16px;
         }
 
         .list-row:last-child { border-bottom: none; }
         .list-row:hover { background: #f9fafb; }
 
-        .row-title {
-          font-size: 15px;
-          font-weight: 600;
-          color: #1a1a2e;
-          margin-bottom: 3px;
-        }
+        .row-title { font-size: 15px; font-weight: 600; color: #1a1a2e; margin-bottom: 3px; }
+        .row-sub { font-size: 13px; color: #9ca3af; }
+        .row-arrow { font-size: 18px; color: #d1d5db; }
 
-        .row-sub {
-          font-size: 13px;
-          color: #9ca3af;
-        }
-
-        .row-arrow {
-          font-size: 18px;
-          color: #d1d5db;
-        }
-
-        .empty {
-          padding: 48px 24px;
-          text-align: center;
-          color: #9ca3af;
-          font-size: 15px;
-        }
-
+        .empty { padding: 48px 24px; text-align: center; color: #9ca3af; font-size: 15px; }
         .empty-icon { font-size: 32px; margin-bottom: 8px; }
 
-        /* PENDING BADGE */
         .pending-badge {
           background: #fef3c7;
           color: #d97706;
@@ -277,6 +209,22 @@ export default function AdminDashboard() {
           border-radius: 99px;
         }
 
+        .budget-badge {
+          font-size: 12px;
+          font-weight: 700;
+          color: #16a34a;
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          padding: 4px 10px;
+          border-radius: 99px;
+          white-space: nowrap;
+        }
+
+        .no-limit-badge {
+          font-size: 12px;
+          color: #9ca3af;
+        }
+
         @media (max-width: 640px) {
           .stats { grid-template-columns: repeat(2, 1fr); }
           .navbar { padding: 0 20px; }
@@ -284,21 +232,17 @@ export default function AdminDashboard() {
         }
       `}</style>
 
-      {/* NAVBAR */}
       <nav className="navbar">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="Two Delta" className="nav-logo" />
         <div className="nav-right">
-          <span className="nav-badge">🎓 university Administration</span>
+          <span className="nav-badge">🎓 University Administration</span>
           <button onClick={handleLogout} className="signout-btn">Sign out</button>
         </div>
       </nav>
 
       <div className="main">
-        <div className="page-title"> </div>
         <div className="page-sub">Manage organizations, budgets, and events</div>
 
-        {/* STATS */}
         <div className="stats">
           <div className="stat-card">
             <div className="stat-label">Total Organizations</div>
@@ -318,24 +262,14 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* TABS */}
         <div className="tabs">
-          <button
-            className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-            onClick={() => setActiveTab('overview')}
-          >
+          <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
             🏛 Organization Directory
           </button>
-          <button
-            className={`tab-btn ${activeTab === 'budgets' ? 'active' : ''}`}
-            onClick={() => setActiveTab('budgets')}
-          >
+          <button className={`tab-btn ${activeTab === 'budgets' ? 'active' : ''}`} onClick={() => setActiveTab('budgets')}>
             💰 Budget Proposals {proposals.length > 0 && `(${proposals.length})`}
           </button>
-          <button
-            className={`tab-btn ${activeTab === 'events' ? 'active' : ''}`}
-            onClick={() => setActiveTab('events')}
-          >
+          <button className={`tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')}>
             📅 Event Proposals {events.length > 0 && `(${events.length})`}
           </button>
         </div>
@@ -345,28 +279,33 @@ export default function AdminDashboard() {
           <div className="content-card">
             <div className="content-head">
               <div className="content-title">Student Organizations</div>
-              <span className="count-badge cyan">{orgs.length} orgs</span>
+              <span className="count-badge blue">{orgs.length} orgs</span>
             </div>
             {orgs.length === 0 ? (
               <div className="empty">
                 <div className="empty-icon">🏛</div>
                 No organizations yet
               </div>
-            ) : (
-              orgs.map(org => (
-                <div
-                  key={org.id}
-                  className="list-row"
-                  onClick={() => router.push(`/admin/org/${org.id}`)}
-                >
-                  <div>
-                    <div className="row-title">{org.name}</div>
-                    <div className="row-sub">{org.description}</div>
-                  </div>
+            ) : orgs.map(org => (
+              <div
+                key={org.id}
+                className="list-row"
+                onClick={() => router.push(`/admin/org/${org.id}`)}
+              >
+                <div style={{ flex: 1 }}>
+                  <div className="row-title">{org.name}</div>
+                  <div className="row-sub">{org.description}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {org.budget_limit > 0 ? (
+                    <span className="budget-badge">💰 ${Number(org.budget_limit).toLocaleString()} limit</span>
+                  ) : (
+                    <span className="no-limit-badge">No limit set</span>
+                  )}
                   <span className="row-arrow">→</span>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         )}
 
@@ -382,20 +321,18 @@ export default function AdminDashboard() {
                 <div className="empty-icon">✅</div>
                 No pending budget proposals
               </div>
-            ) : (
-              proposals.map(proposal => (
-                <div key={proposal.id} className="list-row">
-                  <div>
-                    <div className="row-title">{proposal.title}</div>
-                    <div className="row-sub">{proposal.orgs?.name} · {proposal.description}</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span className="amount-badge">${proposal.amount}</span>
-                    <span className="pending-badge">Pending</span>
-                  </div>
+            ) : proposals.map(proposal => (
+              <div key={proposal.id} className="list-row" style={{ cursor: 'default' }}>
+                <div>
+                  <div className="row-title">{proposal.title}</div>
+                  <div className="row-sub">{proposal.orgs?.name} · {proposal.description}</div>
                 </div>
-              ))
-            )}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span className="amount-badge">${proposal.amount}</span>
+                  <span className="pending-badge">Pending</span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -411,17 +348,15 @@ export default function AdminDashboard() {
                 <div className="empty-icon">✅</div>
                 No pending event proposals
               </div>
-            ) : (
-              events.map(event => (
-                <div key={event.id} className="list-row">
-                  <div>
-                    <div className="row-title">{event.title}</div>
-                    <div className="row-sub">{event.orgs?.name} · 📍 {event.location}</div>
-                  </div>
-                  <span className="pending-badge">Pending</span>
+            ) : events.map(event => (
+              <div key={event.id} className="list-row" style={{ cursor: 'default' }}>
+                <div>
+                  <div className="row-title">{event.title}</div>
+                  <div className="row-sub">{event.orgs?.name} · 📍 {event.location}</div>
                 </div>
-              ))
-            )}
+                <span className="pending-badge">Pending</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
